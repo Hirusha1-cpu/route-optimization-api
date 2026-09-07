@@ -12,7 +12,7 @@ class DashboardController extends Controller
 {
     public function stats(Request $request)
     {
-        // 💡 Global Scope එක (BelongsToCompany) active නිසා company_id manual filter කරන්න අවශ්‍ය නැත.
+        // 💡 Global Scope එක (BelongsToCompany) active නිසා company_id manual filter කරන්න අවශ්‍ය නැත
         
         // Single Query එකකින් අද දවසේ සියලුම Counts සහ Status-wise Counts ලබාගැනීම
         $deliveryStats = Delivery::select(
