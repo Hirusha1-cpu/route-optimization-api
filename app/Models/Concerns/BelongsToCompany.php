@@ -12,7 +12,7 @@ trait BelongsToCompany
         static::addGlobalScope(new CompanyScope);
 
         static::creating(function ($model) {
-            if (! $model->company_id && Auth::check()) {
+            if (!$model->company_id && Auth::check()) {
                 $model->company_id = Auth::user()->company_id;
             }
         });

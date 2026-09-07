@@ -57,7 +57,12 @@ class DeliveryController extends Controller
         if ($request->user()->isDriver() && $delivery->driver_id !== $request->user()->driver_id) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
-
+        if ($newStatus === 'delivered') {
+            return response()->json([
+                'error' => 'Direct status change to delivered is not allowed. You must use the payment confirmation endpoint.'
+            ], 422);
+        }
+        
         $delivery->update(['status' => $newStatus]);
 
         AuditLog::record('delivery.status_changed', $delivery, [

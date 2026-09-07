@@ -7,9 +7,9 @@ use RuntimeException;
 
 class CodLedger extends Model
 {
-    public $timestamps = false;
-
-    const CREATED_AT = 'created_at';
+    
+    public $timestamps = true;
+    const UPDATED_AT = null; 
 
     protected $fillable = ['driver_id', 'delivery_id', 'amount_collected'];
 
