@@ -2,24 +2,24 @@
 
 namespace App\Services;
 
+use Carbon\Carbon;
+
 class RouteOptimizationService
 {
     /**
-     * Nearest-neighbor algorithm for route optimization
-     * This is a heuristic, not optimal (TSP is NP-hard)
+     * Nearest-neighbor algorithm using OSRM Distance Matrix
      */
-    public function nearestNeighbor(array $matrix, array $stops): array
+    public function nearestNeighbor(array $distanceMatrix, array $stops): array
     {
         $numStops = count($stops);
         if ($numStops === 0) {
             return [];
         }
 
-        $visited = array_fill(0, $numStops, false);
+        $visited = array_fill(0, $numStops + 1, false);
         $ordered = [];
-        $current = 0; // Start at index 0 (after start point in matrix)
+        $current = 0; // Start point (Depot / Driver starting location)
 
-        // Mark start point as visited (index 0 in matrix)
         $visited[0] = true;
 
         for ($i = 0; $i < $numStops; $i++) {
@@ -28,7 +28,7 @@ class RouteOptimizationService
 
             for ($j = 1; $j <= $numStops; $j++) {
                 if (!$visited[$j]) {
-                    $distance = $matrix[$current][$j] ?? INF;
+                    $distance = $distanceMatrix[$current][$j] ?? INF;
                     if ($distance < $nearestDistance) {
                         $nearestDistance = $distance;
                         $nearest = $j;
@@ -41,7 +41,7 @@ class RouteOptimizationService
             }
 
             $visited[$nearest] = true;
-            $ordered[] = $stops[$nearest - 1]; // Adjust for matrix offset
+            $ordered[] = $stops[$nearest - 1]; // Adjust for index offset
             $current = $nearest;
         }
 
@@ -49,28 +49,29 @@ class RouteOptimizationService
     }
 
     /**
-     * Optimize route with time window consideration (soft constraint)
+     * Optimize route with real OSRM Durations and Soft Time Windows Constraint
      */
     public function optimizeWithTimeWindows(array $matrix, array $stops): array
     {
-        // First get base order from nearest-neighbor
-        $ordered = $this->nearestNeighbor($matrix, $stops);
+        $distanceMatrix = $matrix['distances'];
+        $durationMatrix = $matrix['durations'];
 
-        // Check if any time windows are violated
-        // If violated, try to reorder to fix (simple 2-opt style swap)
-        $violations = $this->checkTimeWindowViolations($ordered);
+        // 1. Get base order from nearest-neighbor heuristic
+        $ordered = $this->nearestNeighbor($distanceMatrix, $stops);
+
+        // 2. Check violations using real OSRM durations
+        $violations = $this->checkTimeWindowViolations($ordered, $durationMatrix);
         
+        // 3. Simple 2-opt swap to reduce time window violations if any exist
         if (!empty($violations) && count($ordered) > 2) {
-            // Try simple swap to fix violations
             for ($i = 0; $i < count($ordered) - 1; $i++) {
                 for ($j = $i + 1; $j < count($ordered); $j++) {
-                    // Swap and check if violations improve
                     $swapped = $ordered;
                     $temp = $swapped[$i];
                     $swapped[$i] = $swapped[$j];
                     $swapped[$j] = $temp;
 
-                    $newViolations = $this->checkTimeWindowViolations($swapped);
+                    $newViolations = $this->checkTimeWindowViolations($swapped, $durationMatrix);
                     if (count($newViolations) < count($violations)) {
                         $ordered = $swapped;
                         $violations = $newViolations;
@@ -83,25 +84,37 @@ class RouteOptimizationService
         return $ordered;
     }
 
-    protected function checkTimeWindowViolations(array $orderedStops): array
+    /**
+     * 💡 Real OSRM duration values පාවිච්චි කර නිවැරදිම ETA එක ගණනය කිරීම
+     */
+    protected function checkTimeWindowViolations(array $orderedStops, array $durationMatrix): array
     {
         $violations = [];
-        $currentTime = now();
+        $currentTime = Carbon::today()->setHour(8)->setMinute(0); // Assume deliveries start at 8:00 AM
+        $currentMatrixIndex = 0; // Start location index
 
         foreach ($orderedStops as $index => $stop) {
-            // Estimate arrival time (simplified)
-            $arrivalTime = $currentTime->copy()->addMinutes($index * 15);
-            $windowStart = \Carbon\Carbon::parse($stop['window_start']);
-            $windowEnd = \Carbon\Carbon::parse($stop['window_end']);
+            // OSRM එකෙන් දෙන travel time (seconds) එක minutes වලට හැරවීම (+ 10 mins package handover time)
+            $travelTimeSeconds = $durationMatrix[$currentMatrixIndex][$index + 1] ?? 0;
+            $travelTimeMinutes = ceil($travelTimeSeconds / 60) + 10; 
 
-            if ($arrivalTime < $windowStart || $arrivalTime > $windowEnd) {
+            $arrivalTime = $currentTime->copy()->addMinutes($travelTimeMinutes);
+            
+            // Format check for soft windows (e.g., "09:00:00")
+            $windowStart = Carbon::parse(Carbon::today()->toDateString() . ' ' . $stop['window_start']);
+            $windowEnd = Carbon::parse(Carbon::today()->toDateString() . ' ' . $stop['window_end']);
+
+            if ($arrivalTime->lt($windowStart) || $arrivalTime->gt($windowEnd)) {
                 $violations[] = [
-                    'stop_index' => $index,
-                    'arrival' => $arrivalTime->toDateTimeString(),
-                    'window_start' => $windowStart->toDateTimeString(),
-                    'window_end' => $windowEnd->toDateTimeString(),
+                    'stop_id' => $stop['id'] ?? $index,
+                    'arrival' => $arrivalTime->toTimeString(),
+                    'window' => $stop['window_start'] . ' - ' . $stop['window_end'],
                 ];
             }
+
+            // Next stop එකට යන්න කලින් current positions update කිරීම
+            $currentTime = $arrivalTime;
+            $currentMatrixIndex = $index + 1;
         }
 
         return $violations;

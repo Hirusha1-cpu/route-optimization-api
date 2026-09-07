@@ -16,7 +16,8 @@ class UpdateDeliveryStatusRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['required', Rule::in(['assigned', 'in_transit', 'failed', 'pending'])],
+            // 💡 'delivered' status එක මෙතැනටත් ඇතුළත් කරමු, එවිට internal state machine validator එකෙන්ම 'Direct change not allowed' error එක ලස්සනට handle කරගත හැක.
+            'status' => ['required', Rule::in(['assigned', 'in_transit', 'failed', 'pending', 'delivered'])],
         ];
     }
 
@@ -24,11 +25,21 @@ class UpdateDeliveryStatusRequest extends FormRequest
     {
         $validator->after(function ($validator) {
             $delivery = $this->route('delivery');
+            $newStatus = $this->input('status');
 
-            if ($delivery && ! $delivery->canTransitionTo($this->input('status'))) {
+            // 🚨 🚀 Business Rule Guard: direct 'delivered' status එකට මාරු කිරීම තහනම්! [5.F]
+            if ($newStatus === 'delivered') {
                 $validator->errors()->add(
                     'status',
-                    "Cannot transition delivery from '{$delivery->status}' to '{$this->input('status')}'."
+                    "Direct status change to 'delivered' is not allowed. You must use the payment confirmation endpoint."
+                );
+                return;
+            }
+
+            if ($delivery && ! $delivery->canTransitionTo($newStatus)) {
+                $validator->errors()->add(
+                    'status',
+                    "Cannot transition delivery from '{$delivery->status}' to '{$newStatus}'."
                 );
             }
         });

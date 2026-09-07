@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
+use Carbon\Carbon;
 
 class AISummaryService
 {
@@ -10,32 +11,34 @@ class AISummaryService
 
     public function __construct()
     {
-        $this->apiKey = config('services.gemini.api_key');
+        $this->apiKey = config('services.gemini.api_key') ?? '';
     }
 
     public function generateSummary(array $orderedStops, float $totalDistance, float $totalDuration): string
     {
-        // If no API key, return a basic summary
-        if (!$this->apiKey) {
+        // API key එකක් සෙට් කර නොමැති නම් සාමාන්‍ය basic summary එක ලබා දීම
+        if (empty($this->apiKey)) {
             return $this->generateBasicSummary($orderedStops, $totalDistance, $totalDuration);
         }
 
         try {
             $stopsSummary = [];
             foreach ($orderedStops as $index => $stop) {
-                $stopsSummary[] = "{$index + 1}. {$stop['customer_name']} at {$stop['address']}";
+                $stopsSummary[] = "- Stop " . ($index + 1) . ": " . ($stop['customer_name'] ?? 'Customer') . " at " . ($stop['address'] ?? 'No Address');
             }
 
-            $prompt = "Generate a short, professional delivery route summary for a driver. " .
-                       "Stops:\n" . implode("\n", $stopsSummary) . "\n" .
-                       "Total distance: {$totalDistance} km\n" .
-                       "Total duration: {$totalDuration} minutes\n\n" .
-                       "Provide 1-2 sentences about the route order, what to watch out for, " .
-                       "and any tips for the driver.";
+            $prompt = "Generate a short, professional 1-2 sentence delivery route summary for a driver based on these metrics:\n" .
+                       "Stops Order:\n" . implode("\n", $stopsSummary) . "\n" .
+                       "Total Route Distance: {$totalDistance} km\n" .
+                       "Total Driving Duration: {$totalDuration} minutes\n\n" .
+                       "Identify the route's geographic pattern (e.g., heading north first) and give a brief helpful tip for the driver.";
 
-            $response = Http::post("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent", [
-                'key' => $this->apiKey,
-            ], [
+            // 💡 🚀 FIX 1 & 2: API Key එක URL parameter එකක් ලෙස යැවීම සහ Laravel Http Body එක නිවැරදි කිරීම
+            $url = "https://googleapis.com{$this->apiKey}";
+
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+            ])->post($url, [
                 'contents' => [
                     [
                         'parts' => [
@@ -47,6 +50,7 @@ class AISummaryService
 
             if ($response->successful()) {
                 $data = $response->json();
+                // Gemini API එකෙන් එන JSON response එකෙන් text එක නිවැරදිව ලබා ගැනීම
                 return $data['candidates'][0]['content']['parts'][0]['text'] ?? 
                        $this->generateBasicSummary($orderedStops, $totalDistance, $totalDuration);
             }
@@ -71,21 +75,21 @@ class AISummaryService
 
         $summary .= "Total distance is {$totalDistance} km with estimated duration of {$totalDuration} minutes. ";
         
-        // Add basic tips
         if ($totalDistance > 50) {
             $summary .= "This is a long route, consider starting early. ";
         }
 
-        // Check for time windows
         $hasEarlyWindows = false;
         $hasLateWindows = false;
         foreach ($orderedStops as $stop) {
-            $windowStart = \Carbon\Carbon::parse($stop['window_start']);
-            if ($windowStart->hour < 10) {
-                $hasEarlyWindows = true;
-            }
-            if ($windowStart->hour > 16) {
-                $hasLateWindows = true;
+            if (!empty($stop['window_start'])) {
+                $windowStart = Carbon::parse($stop['window_start']);
+                if ($windowStart->hour < 10) {
+                    $hasEarlyWindows = true;
+                }
+                if ($windowStart->hour > 16) {
+                    $hasLateWindows = true;
+                }
             }
         }
 

@@ -73,7 +73,8 @@ class DeliveryController extends Controller
 
         // If failed, dispatch job to re-queue next day
         if ($newStatus === 'failed') {
-            dispatch(new \App\Jobs\RequeueFailedDelivery($delivery));
+            // 💡 🚀 FIX: Controller එකෙන් dispatch කරද්දීම delay එක දවසකින් ඉදිරියට තල්ලු කිරීම
+            dispatch(new \App\Jobs\RequeueFailedDelivery($delivery))->delay(now()->addDay());
         }
 
         return response()->json($delivery);

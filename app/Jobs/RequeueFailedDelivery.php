@@ -12,33 +12,37 @@ class RequeueFailedDelivery implements ShouldQueue
 {
     use Queueable;
 
-    protected Delivery $delivery;
+    public Delivery $delivery;
 
     public function __construct(Delivery $delivery)
     {
         $this->delivery = $delivery;
-        // Run this job tomorrow
-        $this->delay(now()->addDay());
+        // 💡 Delay එක මෙතනින් අයින් කර Controller එකෙන් dispatch කරන තැනට දැමීම වඩාත් සුදුසුයි.
     }
 
     public function handle(): void
     {
-        if ($this->delivery->status !== 'failed') {
-            return; // Status changed, skip
+        // 💡 Background queue worker එකෙන් දුවද්දී Multi-tenancy scope එක බාධාවක් නොවීමට:
+        $delivery = Delivery::withoutGlobalScopes()->find($this->delivery->id);
+
+        if (!$delivery || $delivery->status !== 'failed') {
+            return; 
         }
 
-        $this->delivery->update([
+        $delivery->update([
             'status' => 'pending',
             'driver_id' => null,
         ]);
 
-        AuditLog::record('delivery.requeued', $this->delivery, [
+        // Background job එකක් නිසා actor එක 'system_queue' ලෙස සටහන් කිරීම
+        AuditLog::record('delivery.requeued', $delivery, [
             'reason' => 'Failed delivery re-queued for next day',
+            'actor'  => 'system_queue'
         ]);
 
         Log::info("Requeued failed delivery", [
-            'delivery_id' => $this->delivery->id,
-            'customer' => $this->delivery->customer_name,
+            'delivery_id' => $delivery->id,
+            'customer'    => $delivery->customer_name,
         ]);
     }
 }

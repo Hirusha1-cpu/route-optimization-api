@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Company;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -12,7 +13,7 @@ class AuthTest extends TestCase
 
     public function test_admin_can_register()
     {
-        $response = $this->post('/api/register', [
+        $response = $this->postJson('/api/register', [
             'role' => 'admin',
             'name' => 'Test Admin',
             'email' => 'admin@test.com',
@@ -27,9 +28,10 @@ class AuthTest extends TestCase
 
     public function test_driver_can_register()
     {
-        $company = \App\Models\Company::factory()->create();
+        // 💡 Factory එක හරහා Company එකක් නිර්මාණය කිරීම
+        $company = Company::create(['name' => 'Delivery Express']);
 
-        $response = $this->post('/api/register', [
+        $response = $this->postJson('/api/register', [
             'role' => 'driver',
             'name' => 'Test Driver',
             'email' => 'driver@test.com',
@@ -39,23 +41,33 @@ class AuthTest extends TestCase
         ]);
 
         $response->assertStatus(201);
-        $this->assertDatabaseHas('drivers', ['name' => 'Test Driver', 'phone' => '0771234567']);
+        $this->assertDatabaseHas('drivers', ['company_id' => $company->id, 'phone' => '0771234567']);
         $this->assertDatabaseHas('users', ['email' => 'driver@test.com', 'role' => 'driver']);
     }
 
     public function test_user_can_login()
     {
-        $user = User::factory()->create([
+        // 💡 Tenant isolation නිසා මුලින්ම company එකක් සාදා User ව එයට අමුණන්න
+        $company = Company::create(['name' => 'Login Test Company']);
+        
+        $user = User::create([
+            'company_id' => $company->id,
+            'name' => 'Test User',
             'email' => 'test@test.com',
             'password' => bcrypt('password123'),
+            'role' => 'admin',
         ]);
 
-        $response = $this->post('/api/login', [
+        // 💡 post 대신 postJson භාවිතා කිරීම API testing වලදී වඩාත් සුදුසුයි
+        $response = $this->postJson('/api/login', [
             'email' => 'test@test.com',
             'password' => 'password123',
         ]);
 
         $response->assertStatus(200);
-        $response->assertJsonStructure(['user', 'token']);
+        $response->assertJsonStructure([
+            'user' => ['id', 'name', 'email', 'company_id', 'role'],
+            'token'
+        ]);
     }
 }

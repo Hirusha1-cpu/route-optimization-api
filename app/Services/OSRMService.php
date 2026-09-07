@@ -34,47 +34,55 @@ class OSRMService
         ]);
 
         if ($response->failed()) {
-            // Default speed 30 km/h
             $distance = $this->haversineDistance($lat1, $lng1, $lat2, $lng2);
-            return ($distance / 30) * 3600; // seconds
+            return ($distance / 30) * 3600; // Default speed 30 km/h -> seconds
         }
 
         $data = $response->json();
         return $data['routes'][0]['legs'][0]['duration']; // seconds
     }
 
-    public function getDistanceMatrix(float $startLat, float $startLng, array $stops): array
+    /**
+     * 💡 Distance සහ Duration Matrices දෙකම එකවර ලබා ගැනීම
+     */
+    public function getDistanceAndDurationMatrix(float $startLat, float $startLng, array $stops): array
     {
         $coordinates = [];
-        
-        // Add start location
         $coordinates[] = "{$startLng},{$startLat}";
         
-        // Add all stops
         foreach ($stops as $stop) {
             $coordinates[] = "{$stop['lng']},{$stop['lat']}";
         }
 
         $coordinatesString = implode(';', $coordinates);
 
-        $response = Http::get("{$this->baseUrl}/table/v1/driving/{$coordinatesString}");
+        // 💡 OSRM එකට annotations=distance,duration යැවීමෙන් matrices දෙකම එකවර ලැබේ
+        $response = Http::get("{$this->baseUrl}/table/v1/driving/{$coordinatesString}", [
+            'annotations' => 'distance,duration'
+        ]);
 
         if ($response->failed()) {
-            return $this->fallbackDistanceMatrix($startLat, $startLng, $stops);
+            return $this->fallbackMatrix($startLat, $startLng, $stops);
         }
 
         $data = $response->json();
         
-        // Extract distances
-        $matrix = [];
+        $distances = [];
+        $durations = [];
+
         foreach ($data['distances'] as $i => $row) {
-            $matrix[$i] = [];
-            foreach ($row as $j => $distance) {
-                $matrix[$i][$j] = $distance / 1000; // Convert to km
+            $distances[$i] = [];
+            $durations[$i] = [];
+            foreach ($row as $j => $val) {
+                $distances[$i][$j] = $val / 1000; // Convert to km
+                $durations[$i][$j] = $data['durations'][$i][$j]; // seconds
             }
         }
 
-        return $matrix;
+        return [
+            'distances' => $distances,
+            'durations' => $durations,
+        ];
     }
 
     protected function haversineDistance(float $lat1, float $lng1, float $lat2, float $lng2): float
@@ -93,21 +101,31 @@ class OSRMService
         return $earthRadius * $c;
     }
 
-    protected function fallbackDistanceMatrix(float $startLat, float $startLng, array $stops): array
+    /**
+     * 💡 Fallback එකකදී දුර සහ ගතවන කාලය (30km/h වේගයෙන්) දෙකම ගණනය කිරීම
+     */
+    protected function fallbackMatrix(float $startLat, float $startLng, array $stops): array
     {
         $allPoints = array_merge([['lat' => $startLat, 'lng' => $startLng]], $stops);
-        $matrix = [];
+        $distances = [];
+        $durations = [];
 
         foreach ($allPoints as $i => $point1) {
-            $matrix[$i] = [];
+            $distances[$i] = [];
+            $durations[$i] = [];
             foreach ($allPoints as $j => $point2) {
-                $matrix[$i][$j] = $this->haversineDistance(
+                $dist = $this->haversineDistance(
                     $point1['lat'], $point1['lng'],
                     $point2['lat'], $point2['lng']
                 );
+                $distances[$i][$j] = $dist;
+                $durations[$i][$j] = ($dist / 30) * 3600; // 30 km/h baseline speed
             }
         }
 
-        return $matrix;
+        return [
+            'distances' => $distances,
+            'durations' => $durations,
+        ];
     }
 }

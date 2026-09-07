@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 use RuntimeException;
 
 class AuditLog extends Model
@@ -30,8 +31,8 @@ class AuditLog extends Model
     public static function record(string $action, Model $subject, array $details = []): self
     {
         return static::create([
-            'company_id' => $subject->company_id ?? auth()->user()?->company_id,
-            'actor_id' => auth()->id(),
+            'company_id' => $subject->company_id ?? Auth::user()?->company_id,
+            'actor_id' => Auth::id(),
             'action' => $action,
             'subject_type' => get_class($subject),
             'subject_id' => $subject->id,
