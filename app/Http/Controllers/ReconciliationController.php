@@ -20,34 +20,51 @@ class ReconciliationController extends Controller
 
         $date = $request->date;
 
-        $query = Delivery::whereDate('created_at', $date)
-            ->whereIn('status', ['delivered', 'failed']);
+        // 💡 1. Drivers ලගේ Expected COD Amounts එකම Query එකකින් Group කර ලබා ගැනීම
+        // 🚨 FIX: සල්ලි බලාපොරොත්තු වෙන්නේ 'delivered' ඒවගෙන් පමණි.
+        $deliveryQuery = Delivery::select('driver_id', DB::raw('SUM(cod_amount) as expected_total'))
+            ->whereDate('created_at', $date)
+            ->where('status', 'delivered')
+            ->groupBy('driver_id');
+
+        // 💡 2. Drivers ලා එකතු කළ ඇත්තම සල්ලි (Actual COD) Group කර ලබා ගැනීම
+        $ledgerQuery = CodLedger::select('driver_id', DB::raw('SUM(amount_collected) as actual_total'))
+            ->whereDate('created_at', $date)
+            ->groupBy('driver_id');
 
         if ($request->driver_id) {
-            $query->where('driver_id', $request->driver_id);
+            $deliveryQuery->where('driver_id', $request->driver_id);
+            $ledgerQuery->where('driver_id', $request->driver_id);
         }
 
-        $deliveries = $query->with('driver')->get();
+        $expectedData = $deliveryQuery->pluck('expected_total', 'driver_id');
+        $actualData = $ledgerQuery->pluck('actual_total', 'driver_id');
+
+        // 💡 3. Drivers ලගේ විස්තර Eager Load කර එකවර ලබා ගැනීම
+        $driverIds = collect($expectedData->keys()->merge($actualData->keys()))->unique();
+        $drivers = Driver::whereIn('id', $driverIds)->get()->keyBy('id');
 
         $results = [];
         $discrepancies = [];
 
-        foreach ($deliveries->groupBy('driver_id') as $driverId => $driverDeliveries) {
-            $driver = Driver::find($driverId);
+        foreach ($driverIds as $driverId) {
+            $driver = $drivers->get($driverId);
             if (!$driver) continue;
 
-            $expectedTotal = $driverDeliveries->sum('cod_amount');
-
-            $actualTotal = CodLedger::where('driver_id', $driverId)
-                ->whereDate('created_at', $date)
-                ->sum('amount_collected');
-
+            $expectedTotal = $expectedData->get($driverId, 0.00);
+            $actualTotal = $actualData->get($driverId, 0.00);
             $discrepancy = $expectedTotal - $actualTotal;
+
+            // Delivery Counts (delivered පමණක් නොව, failed ඇතුළු සියල්ල දැනගැනීමට)
+            $deliveryCount = Delivery::where('driver_id', $driverId)
+                ->whereDate('created_at', $date)
+                ->whereIn('status', ['delivered', 'failed'])
+                ->count();
 
             $results[] = [
                 'driver_id' => $driverId,
                 'driver_name' => $driver->name,
-                'delivery_count' => $driverDeliveries->count(),
+                'delivery_count' => $deliveryCount,
                 'expected_total' => round($expectedTotal, 2),
                 'actual_collected' => round($actualTotal, 2),
                 'discrepancy' => round($discrepancy, 2),
@@ -63,7 +80,6 @@ class ReconciliationController extends Controller
             }
         }
 
-        // Log reconciliation
         AuditLog::record('reconciliation.daily', $request->user(), [
             'date' => $date,
             'discrepancies' => $discrepancies,
@@ -79,6 +95,7 @@ class ReconciliationController extends Controller
 
     public function driverWallet(Driver $driver)
     {
+        // 💡 Driver Profile Model එකේ 'calculatedWalletBalance' ලියා තිබිය යුතුය
         $balance = $driver->calculatedWalletBalance();
 
         return response()->json([
