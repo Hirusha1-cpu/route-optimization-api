@@ -28,7 +28,6 @@ class AuthTest extends TestCase
 
     public function test_driver_can_register()
     {
-        // 💡 Factory එක හරහා Company එකක් නිර්මාණය කිරීම
         $company = Company::create(['name' => 'Delivery Express']);
 
         $response = $this->postJson('/api/register', [
@@ -47,7 +46,6 @@ class AuthTest extends TestCase
 
     public function test_user_can_login()
     {
-        // 💡 Tenant isolation නිසා මුලින්ම company එකක් සාදා User ව එයට අමුණන්න
         $company = Company::create(['name' => 'Login Test Company']);
         
         $user = User::create([
@@ -58,7 +56,6 @@ class AuthTest extends TestCase
             'role' => 'admin',
         ]);
 
-        // 💡 post 대신 postJson භාවිතා කිරීම API testing වලදී වඩාත් සුදුසුයි
         $response = $this->postJson('/api/login', [
             'email' => 'test@test.com',
             'password' => 'password123',
@@ -68,6 +65,61 @@ class AuthTest extends TestCase
         $response->assertJsonStructure([
             'user' => ['id', 'name', 'email', 'company_id', 'role'],
             'token'
+        ]);
+    }
+
+    public function test_invalid_login_returns_error()
+    {
+        $response = $this->postJson('/api/login', [
+            'email' => 'wrong@test.com',
+            'password' => 'wrongpassword',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['email']);
+    }
+
+    public function test_logout_works()
+    {
+        $company = Company::create(['name' => 'Logout Test']);
+        $user = User::create([
+            'company_id' => $company->id,
+            'name' => 'Test User',
+            'email' => 'logout@test.com',
+            'password' => bcrypt('password123'),
+            'role' => 'admin',
+        ]);
+
+        $token = $user->createToken('api')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/logout');
+
+        $response->assertStatus(200);
+        $this->assertCount(0, $user->tokens);
+    }
+
+    public function test_authenticated_user_can_get_their_info()
+    {
+        $company = Company::create(['name' => 'Me Test']);
+        $user = User::create([
+            'company_id' => $company->id,
+            'name' => 'Me User',
+            'email' => 'me@test.com',
+            'password' => bcrypt('password123'),
+            'role' => 'admin',
+        ]);
+
+        $token = $user->createToken('api')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/me');
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'id' => $user->id,
+            'email' => 'me@test.com',
+            'name' => 'Me User',
         ]);
     }
 }

@@ -1,8 +1,9 @@
 import Echo from 'laravel-echo';
-
 import Pusher from 'pusher-js';
+
 window.Pusher = Pusher;
 
+// Initialize Echo
 window.Echo = new Echo({
     broadcaster: "pusher",
     key: import.meta.env.VITE_PUSHER_APP_KEY,
@@ -12,4 +13,10 @@ window.Echo = new Echo({
     wsPort: import.meta.env.VITE_PUSHER_PORT,
     wssPort: import.meta.env.VITE_PUSHER_PORT,
     enabledTransports: ["ws", "wss"],
+    authEndpoint: '/broadcasting/auth',
+    auth: {
+        headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+    }
 });

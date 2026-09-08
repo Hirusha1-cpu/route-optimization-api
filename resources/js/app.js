@@ -1,9 +1,17 @@
-//
-
-/**
- * Echo exposes an expressive API for subscribing to channels and listening
- * for events that are broadcast by Laravel. Echo and event broadcasting
- * allow your team to quickly build robust real-time web applications.
- */
-
+import './bootstrap';
 import './echo';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './components/App';
+import '../css/app.css';
+
+// Mount React app
+const rootElement = document.getElementById('app');
+if (rootElement) {
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(
+        <React.StrictMode>
+            <App />
+        </React.StrictMode>
+    );
+}
