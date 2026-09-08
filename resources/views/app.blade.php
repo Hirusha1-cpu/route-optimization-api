@@ -7,7 +7,7 @@
     <meta name="company-id" content="{{ auth()->user()->company_id ?? '' }}">
     <meta name="user-role" content="{{ auth()->user()->role ?? '' }}">
     <title>Route Optimizer - Fleet Tracking</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/js/app.jsx'])
 </head>
 <body class="antialiased">
     <div id="app"></div>
