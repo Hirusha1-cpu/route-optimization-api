@@ -32,7 +32,7 @@ class AuditLog extends Model
     {
         return static::create([
             'company_id' => $subject->company_id ?? Auth::user()?->company_id,
-            'actor_id' => Auth::id(),
+            'actor_id' => Auth::id() ?? 0,  // 👈 null වෙනවා නම් 0 දාන්න
             'action' => $action,
             'subject_type' => get_class($subject),
             'subject_id' => $subject->id,

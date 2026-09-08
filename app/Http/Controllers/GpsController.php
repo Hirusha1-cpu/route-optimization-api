@@ -51,14 +51,14 @@ class GpsController extends Controller
                 'driver_id' => ['required', 'exists:drivers,id']
             ]);
             $driverId = $request->driver_id;
-            
+
             // Security: ඒ driver තමන්ගේම company එකේ කෙනෙක්ද කියලා බලනවා
-            $driverExists = Driver::where('id', $driverId)->exists(); 
+            $driverExists = Driver::where('id', $driverId)->exists();
             if (! $driverExists) {
                 return response()->json(['error' => 'Unauthorized driver access'], 403);
             }
         }
-        
+
         $logs = GpsLog::where('driver_id', $driverId)
             ->orderBy('logged_at', 'desc')
             ->limit(100)

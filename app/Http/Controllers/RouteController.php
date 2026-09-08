@@ -107,12 +107,13 @@ class RouteController extends Controller
         $route = DB::transaction(function () use ($request, $orderedStopsList, $totalDistance, $totalDurationMinutes, $aiSummary) {
             
             $newRoute = RouteModel::create([
-                'driver_id'          => $request->driver_id,
-                'date'               => now()->toDateString(),
-                'ordered_stops'      => $orderedStopsList,
-                'total_distance_km'  => round($totalDistance, 2),
+                'company_id' => $request->user()->company_id,  // 👈 මේ line එක add කරන්න
+                'driver_id' => $request->driver_id,
+                'date' => now()->toDateString(),
+                'ordered_stops' => $orderedStopsList,
+                'total_distance_km' => round($totalDistance, 2),
                 'total_duration_min' => $totalDurationMinutes,
-                'ai_summary'         => $aiSummary,
+                'ai_summary' => $aiSummary,
             ]);
 
             // Bulk Update

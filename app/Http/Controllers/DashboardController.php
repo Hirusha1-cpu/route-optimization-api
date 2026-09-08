@@ -27,7 +27,8 @@ class DashboardController extends Controller
         // Drivers ලා වෙනුවෙන් Run වන Queries
         $totalDrivers = Driver::count();
         $activeDrivers = Driver::whereHas('deliveries', function ($query) {
-            $query->whereIn('status', ['assigned', 'in_transit']);
+            $query->whereIn('status', ['assigned', 'in_transit'])
+             ->whereDate('created_at', today());
         })->count();
 
         return response()->json([

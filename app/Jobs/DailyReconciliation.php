@@ -71,12 +71,12 @@ class DailyReconciliation implements ShouldQueue
             if (!empty($companyDiscrepancies)) {
                 
                 // AuditLog සේවාවට company context එක ලබා දීම
-                $company = \App\Models\Company::find($companyId);
+                $company = \App\Models\Company::withoutGlobalScopes()->find($companyId);
                 if ($company) {
                     AuditLog::record('reconciliation.discrepancy_found', $company, [
-                        'date'          => $date,
+                        'date' => $date,
                         'discrepancies' => $companyDiscrepancies,
-                        'actor'         => 'system_cron'
+                        'actor' => 'system_cron'
                     ]);
                 }
 
