@@ -80,7 +80,7 @@ class ReconciliationController extends Controller
             }
         }
 
-        AuditLog::record('reconciliation.daily', $request->user(), [
+        AuditLog::record('reconciliation.daily', $request->user() ?? new \App\Models\Company(), [
             'date' => $date,
             'discrepancies' => $discrepancies,
         ]);

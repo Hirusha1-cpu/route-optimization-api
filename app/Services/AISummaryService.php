@@ -34,7 +34,8 @@ class AISummaryService
                        "Identify the route's geographic pattern (e.g., heading north first) and give a brief helpful tip for the driver.";
 
             // 💡 🚀 FIX 1 & 2: API Key එක URL parameter එකක් ලෙස යැවීම සහ Laravel Http Body එක නිවැරදි කිරීම
-            $url = "https://googleapis.com{$this->apiKey}";
+            // $url = "https://googleapis.com{$this->apiKey}";
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={$this->apiKey}";
 
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',

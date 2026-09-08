@@ -45,7 +45,8 @@ class DashboardController extends Controller
     public function auditLogs(Request $request)
     {
         // 💡 Global Scope එක නිසා මෙතනත් where('company_id') අයින් කළ හැක.
-        $logs = AuditLog::orderBy('created_at', 'desc')
+        $logs = AuditLog::query()
+            ->orderBy('created_at', 'desc')
             ->paginate(50);
 
         return response()->json($logs);
