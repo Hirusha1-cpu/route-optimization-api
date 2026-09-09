@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
 
-function Login({ onLogin }) {
+// 👇 Named export use කරන්න
+export function Login({ onLogin }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -84,4 +85,5 @@ function Login({ onLogin }) {
     );
 }
 
+// 👇 Default export එකත් add කරන්න (backward compatibility)
 export default Login;

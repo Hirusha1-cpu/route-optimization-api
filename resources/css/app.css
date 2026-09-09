@@ -1,6 +1,7 @@
-@import "tailwindcss";  /* 👈 @import 'tailwindcss' වෙනුවට @import "tailwindcss" */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-/* Custom styles */
 .leaflet-container {
     height: 100%;
     width: 100%;
@@ -12,24 +13,4 @@
     font-size: 24px;
     line-height: 30px;
     text-align: center;
-}
-
-/* Scrollbar styles */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #555;
 }

@@ -16,16 +16,22 @@
 //     );
 // }
 
+// 👇 First load CSS
+import '../css/app.css';
+
+// 👇 Then load bootstrap
 import './bootstrap';
-import './echo';
+
+// 👇 Then load React
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './components/App';
-import '../css/app.css';
+
+// 👇 Finally load Echo (after React)
+import './echo';
 
 const rootElement = document.getElementById('app');
 if (rootElement) {
     const root = ReactDOM.createRoot(rootElement);
-    // 👇 StrictMode ඉවත් කරලා test කරන්න
     root.render(<App />);
 }

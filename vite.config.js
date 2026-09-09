@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
-import react from '@vitejs/plugin-react';
+import react from '@vitejs/plugin-react-swc';  // 👈 SWC plugin use කරන්න
 
 export default defineConfig({
     plugins: [
@@ -9,26 +9,24 @@ export default defineConfig({
             refresh: true,
         }),
         react({
-            // 👇 මේ config එක add කරන්න
-            include: "**/*.{jsx,tsx}",
-            babel: {
-                plugins: ['@babel/plugin-transform-react-jsx-self', '@babel/plugin-transform-react-jsx-source'],
-            },
+            // 👇 Preamble fix
+            tsDecorators: false,
         }),
     ],
     server: {
         host: '0.0.0.0',
         port: 5173,
+        strictPort: true,
         watch: {
             ignored: ['**/storage/framework/views/**'],
         },
-        // 👇 HMR config එක add කරන්න
-        hmr: {
-            host: 'localhost',
-            port: 5173,
-        },
     },
-    optimizeDeps: {
-        include: ['react', 'react-dom', 'react/jsx-runtime'],
+    // 👇 Build options
+    build: {
+        rollupOptions: {
+            input: {
+                app: 'resources/js/app.jsx',
+            },
+        },
     },
 });
