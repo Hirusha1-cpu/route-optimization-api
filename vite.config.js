@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
-import react from '@vitejs/plugin-react-swc';  // 👈 SWC plugin use කරන්න
+import react from '@vitejs/plugin-react-swc';
 
 export default defineConfig({
     plugins: [
@@ -9,7 +9,6 @@ export default defineConfig({
             refresh: true,
         }),
         react({
-            // 👇 Preamble fix
             tsDecorators: false,
         }),
     ],
@@ -21,8 +20,9 @@ export default defineConfig({
             ignored: ['**/storage/framework/views/**'],
         },
     },
-    // 👇 Build options
     build: {
+        outDir: 'public/build',        // 👈 මේක add කරන්න!
+        emptyOutDir: true,
         rollupOptions: {
             input: {
                 app: 'resources/js/app.jsx',
