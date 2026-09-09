@@ -3,20 +3,26 @@ import Pusher from 'pusher-js';
 
 window.Pusher = Pusher;
 
-// Initialize Echo
-window.Echo = new Echo({
-    broadcaster: "pusher",
-    key: import.meta.env.VITE_PUSHER_APP_KEY,
-    cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
-    forceTLS: true,
-    wsHost: import.meta.env.VITE_PUSHER_HOST,
-    wsPort: import.meta.env.VITE_PUSHER_PORT,
-    wssPort: import.meta.env.VITE_PUSHER_PORT,
-    enabledTransports: ["ws", "wss"],
-    authEndpoint: '/broadcasting/auth',
-    auth: {
-        headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
+// 👇 Check if token exists before initializing Echo
+const token = localStorage.getItem('token');
+
+if (token) {
+    window.Echo = new Echo({
+        broadcaster: "pusher",
+        key: import.meta.env.VITE_PUSHER_APP_KEY || 'your_pusher_key',
+        cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER || 'mt1',
+        forceTLS: true,
+        wsHost: import.meta.env.VITE_PUSHER_HOST || 'ws-mt1.pusher.com',
+        wsPort: 443,
+        wssPort: 443,
+        enabledTransports: ["ws", "wss"],
+        authEndpoint: '/broadcasting/auth',
+        auth: {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
         }
-    }
-});
+    });
+} else {
+    console.log('Pusher: No token found, skipping Echo initialization');
+}

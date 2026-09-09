@@ -4,7 +4,7 @@ import Login from './Login';
 import Register from './Register';
 import Dashboard from './Dashboard';
 import DriverDashboard from './DriverDashboard';
-import Layout from './Layout';
+import Layout from './Layout';  // 👈 default import
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -24,7 +24,6 @@ function App() {
         localStorage.setItem('user', JSON.stringify(userData));
         setIsAuthenticated(true);
         setUser(userData);
-        window.location.href = '/dashboard';
     };
 
     const handleLogout = () => {
@@ -32,7 +31,6 @@ function App() {
         localStorage.removeItem('user');
         setIsAuthenticated(false);
         setUser(null);
-        window.location.href = '/login';
     };
 
     if (!isAuthenticated) {

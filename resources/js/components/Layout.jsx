@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-function Layout({ children, user, onLogout }) {
+// 👇 named export use කරන්න (default export නෙවෙයි)
+export function Layout({ children, user, onLogout }) {
     const navigate = useNavigate();
 
     const handleLogout = async () => {
@@ -23,7 +24,6 @@ function Layout({ children, user, onLogout }) {
 
     return (
         <div className="min-h-screen bg-gray-100">
-            {/* Navigation */}
             <nav className="bg-white shadow-lg">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between h-16">
@@ -67,8 +67,6 @@ function Layout({ children, user, onLogout }) {
                     </div>
                 </div>
             </nav>
-
-            {/* Main Content */}
             <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 {children}
             </main>
@@ -76,4 +74,5 @@ function Layout({ children, user, onLogout }) {
     );
 }
 
+// 👇 Default export එකත් add කරන්න (backward compatibility සඳහා)
 export default Layout;
