@@ -9,6 +9,7 @@ function RouteGenerator() {
     const [loading, setLoading] = useState(false);
     const [route, setRoute] = useState(null);
     const [error, setError] = useState('');
+    const [loadingDrivers, setLoadingDrivers] = useState(false);
 
     useEffect(() => {
         fetchPendingDeliveries();
@@ -25,12 +26,22 @@ function RouteGenerator() {
     };
 
     const fetchDrivers = async () => {
+        setLoadingDrivers(true);
         try {
-            const response = await api.get('/dashboard/stats');
-            // This is simplified - you'd need a proper driver list endpoint
-            setDrivers([{ id: 1, name: 'Driver 1' }, { id: 2, name: 'Driver 2' }]);
+            // 👇 Real API call
+            const response = await api.get('/drivers');
+            setDrivers(response.data || []);
+            
+            // If no drivers found, show a message
+            if (response.data.length === 0) {
+                console.warn('No drivers found. Please register a driver first.');
+            }
         } catch (error) {
             console.error('Error fetching drivers:', error);
+            // Fallback: empty array
+            setDrivers([]);
+        } finally {
+            setLoadingDrivers(false);
         }
     };
 
@@ -80,16 +91,27 @@ function RouteGenerator() {
                 {/* Select Driver */}
                 <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Select Driver</label>
-                    <select
-                        className="w-full md:w-64 border rounded-md px-3 py-2 text-sm"
-                        value={selectedDriver}
-                        onChange={(e) => setSelectedDriver(e.target.value)}
-                    >
-                        <option value="">Select a driver...</option>
-                        {drivers.map(driver => (
-                            <option key={driver.id} value={driver.id}>{driver.name}</option>
-                        ))}
-                    </select>
+                    {loadingDrivers ? (
+                        <div className="text-sm text-gray-500">Loading drivers...</div>
+                    ) : (
+                        <select
+                            className="w-full md:w-64 border rounded-md px-3 py-2 text-sm"
+                            value={selectedDriver}
+                            onChange={(e) => setSelectedDriver(e.target.value)}
+                        >
+                            <option value="">Select a driver...</option>
+                            {drivers.map(driver => (
+                                <option key={driver.id} value={driver.id}>
+                                    {driver.name} {driver.phone ? `(${driver.phone})` : ''}
+                                </option>
+                            ))}
+                        </select>
+                    )}
+                    {drivers.length === 0 && !loadingDrivers && (
+                        <div className="text-sm text-yellow-600 mt-1">
+                            ⚠️ No drivers found. Please register a driver first.
+                        </div>
+                    )}
                 </div>
 
                 {/* Select Deliveries */}
@@ -126,7 +148,7 @@ function RouteGenerator() {
 
                 <button
                     onClick={generateRoute}
-                    disabled={loading || selectedDeliveries.length < 2}
+                    disabled={loading || selectedDeliveries.length < 2 || !selectedDriver}
                     className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md text-sm disabled:opacity-50"
                 >
                     {loading ? 'Generating...' : 'Generate Route'}

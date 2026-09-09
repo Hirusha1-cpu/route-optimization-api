@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliveryController;
+use App\Http\Controllers\DriverController;
 use App\Http\Controllers\GpsController;
 use App\Http\Controllers\ReconciliationController;
 use App\Http\Controllers\RouteController;
@@ -37,6 +38,11 @@ Route::middleware('auth:sanctum')->group(function () {
         // Dashboard
         Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
         Route::get('/audit-logs', [DashboardController::class, 'auditLogs']);
+
+         // 👇 Drivers
+        Route::get('/drivers', [DriverController::class, 'index']);
+        Route::get('/drivers/active', [DriverController::class, 'active']);
+        Route::get('/drivers/{driver}', [DriverController::class, 'show']);
     });
 
     // --- Driver-only ---

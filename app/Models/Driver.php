@@ -30,4 +30,9 @@ class Driver extends Model
     {
         return (float) $this->codLedgerEntries()->sum('amount_collected');
     }
+
+    public function user()
+    {
+        return $this->hasOne(User::class, 'driver_id');
+    }
 }
