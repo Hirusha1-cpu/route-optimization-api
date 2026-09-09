@@ -9,18 +9,15 @@ use App\Http\Controllers\ReconciliationController;
 use App\Http\Controllers\RouteController;
 use Illuminate\Support\Facades\Route;
 
-// 👇 CORS middleware එක public routes වලට apply කරන්න
-Route::middleware(['cors'])->group(function () {
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login', [AuthController::class, 'login']);
-});
+// Public routes - CORS middleware already applied globally
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
 
 // Protected routes
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
 
-    // 👇 Shared first (BOTH roles can access)
     Route::get('/deliveries', [DeliveryController::class, 'index']);
     Route::put('/deliveries/{delivery}/status', [DeliveryController::class, 'updateStatus']);
 

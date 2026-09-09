@@ -15,28 +15,20 @@ return Application::configure(basePath: dirname(__DIR__))
         channels: __DIR__.'/../routes/channels.php',
         health: '/up',
     )
-   ->withMiddleware(function (Middleware $middleware): void {
-    $middleware->prepend([   // 👈 append → prepend
-        Cors::class,
+    ->withMiddleware(function (Middleware $middleware): void {
+        // 👇 CORS middleware register කරන්න
+        $middleware->api(prepend: [
+            Cors::class,
         ]);
 
+        // 👇 Alias register කරන්න (මෙය අතපසු වෙලා!)
         $middleware->alias([
             'role' => EnsureRole::class,
+            'cors' => Cors::class,  // 👈 මෙය add කරන්න!
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
-
-        $exceptions->render(function (\Throwable $e, Request $request) {
-            if ($request->is('api/*')) {
-                $status = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
-                return response()->json(
-                    ['error' => $e->getMessage()],
-                    $status
-                )->header('Access-Control-Allow-Origin', '*')
-                ->header('Access-Control-Allow-Credentials', 'true');
-            }
-        });
     })->create();
