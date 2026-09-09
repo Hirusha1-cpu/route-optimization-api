@@ -2,11 +2,12 @@
     "$schema": "https://www.schemastore.org/package.json",
     "private": true,
     "type": "module",
-    "scripts": {
-        "build": "vite build",
-        "dev": "vite",
-        "watch": "vite build --watch"
-    },
+    
+  "scripts": {
+    "start": "php artisan serve --host=0.0.0.0 --port=$PORT",
+    "build": "vite build",
+    "dev": "vite"
+  },
     "devDependencies": {
         "autoprefixer": "^10.4.16",
         "laravel-vite-plugin": "^1.0.0",
