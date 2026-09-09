@@ -1,13 +1,16 @@
 import axios from 'axios';
 
+const API_URL = '/api';
+// const API_URL = import.meta.env.VITE_API_URL || 'https://route-optimization-api.up.railway.app/api';
+
 const api = axios.create({
-    // baseURL: '/api',
-    baseURL: 'https://route-optimization-api.up.railway.app/api',
+    baseURL: API_URL,
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
     },
     withCredentials: false,
+    timeout: 30000, // 30 seconds timeout
 });
 
 // Request interceptor - add token

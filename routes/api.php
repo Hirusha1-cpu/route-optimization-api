@@ -9,40 +9,33 @@ use App\Http\Controllers\ReconciliationController;
 use App\Http\Controllers\RouteController;
 use Illuminate\Support\Facades\Route;
 
-// Public routes
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+// 👇 CORS middleware එක public routes වලට apply කරන්න
+Route::middleware(['cors'])->group(function () {
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
+});
 
 // Protected routes
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
 
-    // 👇 1. Shared first (BOTH roles can access)
+    // 👇 Shared first (BOTH roles can access)
     Route::get('/deliveries', [DeliveryController::class, 'index']);
     Route::put('/deliveries/{delivery}/status', [DeliveryController::class, 'updateStatus']);
 
     // --- Admin-only ---
     Route::middleware('role:admin')->group(function () {
-        // Deliveries
         Route::post('/deliveries', [DeliveryController::class, 'store']);
         Route::get('/deliveries/{delivery}', [DeliveryController::class, 'show']);
-
-        // Routes
         Route::post('/routes/generate', [RouteController::class, 'generate']);
         Route::post('/routes/{route}/assign', [RouteController::class, 'assign']);
         Route::get('/routes', [RouteController::class, 'index']);
         Route::get('/routes/{route}', [RouteController::class, 'show']);
-
-        // Reconciliation
         Route::get('/reconciliation/daily', [ReconciliationController::class, 'daily']);
         Route::get('/reconciliation/driver/{driver}', [ReconciliationController::class, 'driverWallet']);
-
-        // Dashboard
         Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
         Route::get('/audit-logs', [DashboardController::class, 'auditLogs']);
-
-        // Drivers
         Route::get('/drivers', [DriverController::class, 'index']);
         Route::get('/drivers/active', [DriverController::class, 'active']);
         Route::get('/drivers/{driver}', [DriverController::class, 'show']);
@@ -53,6 +46,5 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/gps/ping', [GpsController::class, 'ping']);
         Route::get('/gps/history', [GpsController::class, 'history']);
         Route::post('/deliveries/{delivery}/confirm-payment', [DeliveryController::class, 'confirmPayment']);
-        // ❌ DELETE: Route::get('/deliveries', [DeliveryController::class, 'index']); // Remove this!
     });
 });
