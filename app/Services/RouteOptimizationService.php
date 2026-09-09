@@ -96,19 +96,29 @@ class RouteOptimizationService
         foreach ($orderedStops as $index => $stop) {
             // OSRM එකෙන් දෙන travel time (seconds) එක minutes වලට හැරවීම (+ 10 mins package handover time)
             $travelTimeSeconds = $durationMatrix[$currentMatrixIndex][$index + 1] ?? 0;
-            $travelTimeMinutes = ceil($travelTimeSeconds / 60) + 10; 
+            $travelTimeMinutes = ceil($travelTimeSeconds / 60) + 10;
 
             $arrivalTime = $currentTime->copy()->addMinutes($travelTimeMinutes);
             
-            // Format check for soft windows (e.g., "09:00:00")
-            $windowStart = Carbon::parse(Carbon::today()->toDateString() . ' ' . $stop['window_start']);
-            $windowEnd = Carbon::parse(Carbon::today()->toDateString() . ' ' . $stop['window_end']);
+            // 👇 FIX: Check if window_start is already a full datetime or just time
+            $windowStart = $stop['window_start'];
+            $windowEnd = $stop['window_end'];
+            
+            // If it's already a full datetime (contains date), parse it directly
+            if (strpos($windowStart, '-') !== false && strpos($windowStart, ':') !== false) {
+                $windowStartDate = Carbon::parse($windowStart);
+                $windowEndDate = Carbon::parse($windowEnd);
+            } else {
+                // If it's just time (H:i), combine with today's date
+                $windowStartDate = Carbon::parse(Carbon::today()->toDateString() . ' ' . $windowStart);
+                $windowEndDate = Carbon::parse(Carbon::today()->toDateString() . ' ' . $windowEnd);
+            }
 
-            if ($arrivalTime->lt($windowStart) || $arrivalTime->gt($windowEnd)) {
+            if ($arrivalTime->lt($windowStartDate) || $arrivalTime->gt($windowEndDate)) {
                 $violations[] = [
                     'stop_id' => $stop['id'] ?? $index,
                     'arrival' => $arrivalTime->toTimeString(),
-                    'window' => $stop['window_start'] . ' - ' . $stop['window_end'],
+                    'window' => $windowStart . ' - ' . $windowEnd,
                 ];
             }
 

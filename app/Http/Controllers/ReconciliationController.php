@@ -21,13 +21,13 @@ class ReconciliationController extends Controller
         $date = $request->date;
 
         // 💡 1. Drivers ලගේ Expected COD Amounts එකම Query එකකින් Group කර ලබා ගැනීම
-        // 🚨 FIX: සල්ලි බලාපොරොත්තු වෙන්නේ 'delivered' ඒවගෙන් පමණි.
         $deliveryQuery = Delivery::select('driver_id', DB::raw('SUM(cod_amount) as expected_total'))
             ->whereDate('created_at', $date)
             ->where('status', 'delivered')
             ->groupBy('driver_id');
 
         // 💡 2. Drivers ලා එකතු කළ ඇත්තම සල්ලි (Actual COD) Group කර ලබා ගැනීම
+        // 👇 FIX: Use the correct table name 'cod_ledger' (not 'cod_ledgers')
         $ledgerQuery = CodLedger::select('driver_id', DB::raw('SUM(amount_collected) as actual_total'))
             ->whereDate('created_at', $date)
             ->groupBy('driver_id');
@@ -55,7 +55,7 @@ class ReconciliationController extends Controller
             $actualTotal = $actualData->get($driverId, 0.00);
             $discrepancy = $expectedTotal - $actualTotal;
 
-            // Delivery Counts (delivered පමණක් නොව, failed ඇතුළු සියල්ල දැනගැනීමට)
+            // Delivery Counts
             $deliveryCount = Delivery::where('driver_id', $driverId)
                 ->whereDate('created_at', $date)
                 ->whereIn('status', ['delivered', 'failed'])
@@ -95,7 +95,6 @@ class ReconciliationController extends Controller
 
     public function driverWallet(Driver $driver)
     {
-        // 💡 Driver Profile Model එකේ 'calculatedWalletBalance' ලියා තිබිය යුතුය
         $balance = $driver->calculatedWalletBalance();
 
         return response()->json([

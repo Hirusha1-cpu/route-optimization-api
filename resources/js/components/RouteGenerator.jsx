@@ -5,7 +5,7 @@ function RouteGenerator() {
     const [deliveries, setDeliveries] = useState([]);
     const [selectedDeliveries, setSelectedDeliveries] = useState([]);
     const [drivers, setDrivers] = useState([]);
-    const [selectedDriver, setSelectedDriver] = useState('');
+    const [selectedDriver, setSelectedDriver] = useState(''); // 👈 string
     const [loading, setLoading] = useState(false);
     const [route, setRoute] = useState(null);
     const [error, setError] = useState('');
@@ -28,17 +28,13 @@ function RouteGenerator() {
     const fetchDrivers = async () => {
         setLoadingDrivers(true);
         try {
-            // 👇 Real API call
             const response = await api.get('/drivers');
             setDrivers(response.data || []);
-            
-            // If no drivers found, show a message
             if (response.data.length === 0) {
                 console.warn('No drivers found. Please register a driver first.');
             }
         } catch (error) {
             console.error('Error fetching drivers:', error);
-            // Fallback: empty array
             setDrivers([]);
         } finally {
             setLoadingDrivers(false);
@@ -51,6 +47,12 @@ function RouteGenerator() {
                 ? prev.filter(d => d !== id)
                 : [...prev, id]
         );
+    };
+
+    const handleDriverChange = (e) => {
+        const value = e.target.value;
+        console.log('Selected driver value:', value); // 👈 Debug log
+        setSelectedDriver(value);
     };
 
     const generateRoute = async () => {
@@ -69,18 +71,24 @@ function RouteGenerator() {
         try {
             const response = await api.post('/routes/generate', {
                 delivery_ids: selectedDeliveries,
-                driver_id: parseInt(selectedDriver),
+                driver_id: parseInt(selectedDriver), // 👈 Convert to int
                 start_lat: 6.9271,
                 start_lng: 79.8612,
             });
             setRoute(response.data);
             setSelectedDeliveries([]);
+            setSelectedDriver(''); // 👈 Reset after success
             fetchPendingDeliveries();
         } catch (error) {
             setError(error.response?.data?.error || 'Failed to generate route');
         } finally {
             setLoading(false);
         }
+    };
+
+    // 👇 Check if form is valid
+    const isFormValid = () => {
+        return selectedDeliveries.length >= 2 && selectedDriver !== '' && selectedDriver !== null;
     };
 
     return (
@@ -97,7 +105,7 @@ function RouteGenerator() {
                         <select
                             className="w-full md:w-64 border rounded-md px-3 py-2 text-sm"
                             value={selectedDriver}
-                            onChange={(e) => setSelectedDriver(e.target.value)}
+                            onChange={handleDriverChange}
                         >
                             <option value="">Select a driver...</option>
                             {drivers.map(driver => (
@@ -110,6 +118,12 @@ function RouteGenerator() {
                     {drivers.length === 0 && !loadingDrivers && (
                         <div className="text-sm text-yellow-600 mt-1">
                             ⚠️ No drivers found. Please register a driver first.
+                        </div>
+                    )}
+                    {/* 👇 Debug: Show selected driver */}
+                    {selectedDriver && (
+                        <div className="text-sm text-green-600 mt-1">
+                            ✅ Selected driver ID: {selectedDriver}
                         </div>
                     )}
                 </div>
@@ -146,10 +160,16 @@ function RouteGenerator() {
                     <div className="mb-4 text-red-500 text-sm">{error}</div>
                 )}
 
+                {/* 👇 Debug: Show form status */}
+                <div className="text-xs text-gray-400 mb-2">
+                    Debug: {selectedDeliveries.length} deliveries selected, 
+                    Driver selected: {selectedDriver || 'No'}
+                </div>
+
                 <button
                     onClick={generateRoute}
-                    disabled={loading || selectedDeliveries.length < 2 || !selectedDriver}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md text-sm disabled:opacity-50"
+                    disabled={loading || !isFormValid()}
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {loading ? 'Generating...' : 'Generate Route'}
                 </button>

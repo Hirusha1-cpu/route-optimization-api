@@ -7,9 +7,11 @@ use RuntimeException;
 
 class CodLedger extends Model
 {
+    // 👇 Table name should be 'cod_ledger'
+    protected $table = 'cod_ledger';
     
     public $timestamps = true;
-    const UPDATED_AT = null; 
+    const UPDATED_AT = null;
 
     protected $fillable = ['driver_id', 'delivery_id', 'amount_collected'];
 
