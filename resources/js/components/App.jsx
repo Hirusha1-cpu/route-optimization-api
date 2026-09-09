@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './Login';  // 👈 default import works
+import Login from './Login';
 import Register from './Register';
 import Dashboard from './Dashboard';
 import DriverDashboard from './DriverDashboard';
 import Layout from './Layout';
+import DeliveryList from './DeliveryList';
+import RouteGenerator from './RouteGenerator';
+import Reconciliation from './Reconciliation';
+import AuditLogs from './AuditLogs';
 
-export function App() {
+function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState(null);
 
@@ -55,6 +59,10 @@ export function App() {
                             ? <Dashboard user={user} /> 
                             : <DriverDashboard user={user} />
                     } />
+                    <Route path="/deliveries" element={<DeliveryList />} />
+                    <Route path="/routes/generate" element={<RouteGenerator />} />
+                    <Route path="/reconciliation" element={<Reconciliation />} />
+                    <Route path="/audit-logs" element={<AuditLogs />} />
                     <Route path="/login" element={<Navigate to="/dashboard" />} />
                     <Route path="*" element={<Navigate to="/dashboard" />} />
                 </Routes>
@@ -63,5 +71,4 @@ export function App() {
     );
 }
 
-// 👇 Default export
 export default App;

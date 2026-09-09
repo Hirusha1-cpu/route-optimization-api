@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
 
-function Register({ onLogin }) {
+export function Register({ onLogin }) {
     const [formData, setFormData] = useState({
         role: 'admin',
         name: '',

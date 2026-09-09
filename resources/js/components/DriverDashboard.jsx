@@ -151,20 +151,20 @@ function DriverDashboard({ user }) {
                                                 </button>
                                             )}
                                             {delivery.status === 'in_transit' && (
-                                                <button
-                                                    onClick={() => confirmPayment(delivery.id, delivery.cod_amount)}
-                                                    className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs"
-                                                >
-                                                    Confirm COD
-                                                </button>
-                                            )}
-                                            {delivery.status === 'in_transit' && (
-                                                <button
-                                                    onClick={() => updateStatus(delivery.id, 'failed')}
-                                                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs"
-                                                >
-                                                    Failed
-                                                </button>
+                                                <>
+                                                    <button
+                                                        onClick={() => confirmPayment(delivery.id, delivery.cod_amount)}
+                                                        className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs"
+                                                    >
+                                                        Confirm COD
+                                                    </button>
+                                                    <button
+                                                        onClick={() => updateStatus(delivery.id, 'failed')}
+                                                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs"
+                                                    >
+                                                        Failed
+                                                    </button>
+                                                </>
                                             )}
                                         </div>
                                     </div>
