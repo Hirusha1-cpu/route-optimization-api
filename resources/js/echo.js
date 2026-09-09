@@ -3,14 +3,16 @@ import Pusher from 'pusher-js';
 
 window.Pusher = Pusher;
 
-// 👇 Only initialize if token exists
+// 👇 Check if token exists
 const token = localStorage.getItem('token');
+const pusherKey = import.meta.env.VITE_PUSHER_APP_KEY;
 
-if (token && typeof window !== 'undefined') {
+// 👇 Only initialize if we have a real key (not placeholder)
+if (token && pusherKey && pusherKey !== 'your_pusher_key') {
     try {
         window.Echo = new Echo({
             broadcaster: "pusher",
-            key: import.meta.env.VITE_PUSHER_APP_KEY || 'your_pusher_key',
+            key: pusherKey,
             cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER || 'mt1',
             forceTLS: true,
             wsHost: import.meta.env.VITE_PUSHER_HOST || 'ws-mt1.pusher.com',
@@ -24,9 +26,12 @@ if (token && typeof window !== 'undefined') {
                 }
             }
         });
+        console.log('✅ Pusher connected successfully');
     } catch (error) {
-        console.warn('Echo initialization failed:', error);
+        console.warn('⚠️ Pusher initialization failed:', error);
     }
+} else {
+    console.log('ℹ️ Pusher disabled: No valid credentials found');
 }
 
 export default window.Echo;

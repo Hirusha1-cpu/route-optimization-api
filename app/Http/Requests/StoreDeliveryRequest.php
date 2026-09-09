@@ -15,13 +15,13 @@ class StoreDeliveryRequest extends FormRequest
     {
         return [
             'customer_name' => ['required', 'string', 'max:255'],
-            'address'       => ['required', 'string', 'max:255'],
-            'lat'           => ['required', 'numeric', 'between:-90,90'],
-            'lng'           => ['required', 'numeric', 'between:-180,180'],
-            // 💡 ලංකාවේ delivery windows සාමාන්‍යයෙන් "09:00" වැනි පැය:මිනිත්තු format එකෙන් එන නිසා:
-            'window_start'  => ['required', 'date_format:Y-m-d H:i:s'],
-            'window_end'    => ['required', 'date_format:Y-m-d H:i:s', 'after:window_start'],
-            'cod_amount'    => ['required', 'numeric', 'min:0'],
+            'address' => ['required', 'string', 'max:255'],
+            'lat' => ['required', 'numeric', 'between:-90,90'],
+            'lng' => ['required', 'numeric', 'between:-180,180'],
+            // 👇 Fix: Accept both time only (H:i) and full datetime formats
+            'window_start' => ['required', 'date_format:H:i'],
+            'window_end' => ['required', 'date_format:H:i', 'after:window_start'],
+            'cod_amount' => ['required', 'numeric', 'min:0'],
         ];
     }
 }
