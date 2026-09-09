@@ -80,6 +80,41 @@ class DeliveryController extends Controller
         return response()->json($delivery);
     }
 
+    // public function confirmPayment(ConfirmPaymentRequest $request, Delivery $delivery)
+    // {
+    //     if ($delivery->status !== 'in_transit') {
+    //         return response()->json(['error' => 'Delivery must be in_transit to confirm payment'], 422);
+    //     }
+
+    //     if ($request->user()->driver_id !== $delivery->driver_id) {
+    //         return response()->json(['error' => 'Unauthorized'], 403);
+    //     }
+
+    //     DB::transaction(function () use ($request, $delivery) {
+    //         // Create ledger entry (append-only)
+    //         CodLedger::create([
+    //             'driver_id' => $delivery->driver_id,
+    //             'delivery_id' => $delivery->id,
+    //             'amount_collected' => $request->amount_collected,
+    //         ]);
+
+    //         // Update delivery status
+    //         $oldStatus = $delivery->status;
+    //         $delivery->update(['status' => 'delivered']);
+
+    //         AuditLog::record('cod.collected', $delivery, [
+    //             'amount' => $request->amount_collected,
+    //             'from' => $oldStatus,
+    //             'to' => 'delivered',
+    //         ]);
+
+    //         // Dispatch confirmation job
+    //         dispatch(new \App\Jobs\SendDeliveryConfirmation($delivery));
+    //     });
+
+    //     return response()->json(['message' => 'Payment confirmed successfully']);
+    // }
+
     public function confirmPayment(ConfirmPaymentRequest $request, Delivery $delivery)
     {
         if ($delivery->status !== 'in_transit') {
@@ -112,7 +147,13 @@ class DeliveryController extends Controller
             dispatch(new \App\Jobs\SendDeliveryConfirmation($delivery));
         });
 
-        return response()->json(['message' => 'Payment confirmed successfully']);
+        // 👇 Refresh delivery from database and return it
+        $updatedDelivery = $delivery->fresh()->load('driver', 'codLedgerEntries');
+
+        return response()->json([
+            'message' => 'Payment confirmed successfully',
+            'delivery' => $updatedDelivery  // 👈 Updated delivery object
+        ]);
     }
 
     public function show(Delivery $delivery)

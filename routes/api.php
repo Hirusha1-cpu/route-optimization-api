@@ -18,10 +18,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
 
+    // 👇 1. Shared first (BOTH roles can access)
+    Route::get('/deliveries', [DeliveryController::class, 'index']);
+    Route::put('/deliveries/{delivery}/status', [DeliveryController::class, 'updateStatus']);
+
     // --- Admin-only ---
     Route::middleware('role:admin')->group(function () {
         // Deliveries
-        Route::get('/deliveries', [DeliveryController::class, 'index']);
         Route::post('/deliveries', [DeliveryController::class, 'store']);
         Route::get('/deliveries/{delivery}', [DeliveryController::class, 'show']);
 
@@ -39,7 +42,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
         Route::get('/audit-logs', [DashboardController::class, 'auditLogs']);
 
-         // 👇 Drivers
+        // Drivers
         Route::get('/drivers', [DriverController::class, 'index']);
         Route::get('/drivers/active', [DriverController::class, 'active']);
         Route::get('/drivers/{driver}', [DriverController::class, 'show']);
@@ -50,8 +53,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/gps/ping', [GpsController::class, 'ping']);
         Route::get('/gps/history', [GpsController::class, 'history']);
         Route::post('/deliveries/{delivery}/confirm-payment', [DeliveryController::class, 'confirmPayment']);
+        // ❌ DELETE: Route::get('/deliveries', [DeliveryController::class, 'index']); // Remove this!
     });
-
-    // --- Shared (both roles) ---
-    Route::put('/deliveries/{delivery}/status', [DeliveryController::class, 'updateStatus']);
 });

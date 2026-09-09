@@ -7,6 +7,7 @@ function DeliveryList() {
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('');
     const [showCreate, setShowCreate] = useState(false);
+    const [error, setError] = useState('');
 
     useEffect(() => {
         fetchDeliveries();
@@ -14,14 +15,29 @@ function DeliveryList() {
 
     const fetchDeliveries = async () => {
         try {
+            setLoading(true);
+            setError('');
             const url = statusFilter ? `/deliveries?status=${statusFilter}` : '/deliveries';
             const response = await api.get(url);
+            console.log('📦 Deliveries loaded:', response.data.data?.length);
             setDeliveries(response.data.data || []);
         } catch (error) {
-            console.error('Error fetching deliveries:', error);
+            console.error('❌ Error fetching deliveries:', error);
+            if (error.response?.status === 403) {
+                setError('You need admin access to view all deliveries. Please login as admin.');
+            } else if (error.response?.status === 401) {
+                setError('Please login again.');
+                window.location.href = '/login';
+            } else {
+                setError('Failed to load deliveries. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleRefresh = () => {
+        fetchDeliveries();
     };
 
     const handleStatusUpdate = async (id, status) => {
@@ -53,13 +69,27 @@ function DeliveryList() {
         <div>
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">Deliveries</h2>
-                <button
-                    onClick={() => setShowCreate(true)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm"
-                >
-                    + New Delivery
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={handleRefresh}
+                        className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-md text-sm"
+                    >
+                        🔄 Refresh
+                    </button>
+                    <button
+                        onClick={() => setShowCreate(true)}
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm"
+                    >
+                        + New Delivery
+                    </button>
+                </div>
             </div>
+
+            {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    ⚠️ {error}
+                </div>
+            )}
 
             {/* Filter */}
             <div className="mb-4">
@@ -75,6 +105,9 @@ function DeliveryList() {
                     <option value="delivered">Delivered</option>
                     <option value="failed">Failed</option>
                 </select>
+                <span className="ml-2 text-sm text-gray-500">
+                    {deliveries.length} deliveries found
+                </span>
             </div>
 
             {/* Table */}
@@ -90,36 +123,44 @@ function DeliveryList() {
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {deliveries.map((delivery) => (
-                            <tr key={delivery.id}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {delivery.customer_name}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {delivery.address}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    LKR {delivery.cod_amount}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(delivery.status)}`}>
-                                        {delivery.status}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <select
-                                        className="border rounded px-2 py-1 text-sm"
-                                        value={delivery.status}
-                                        onChange={(e) => handleStatusUpdate(delivery.id, e.target.value)}
-                                    >
-                                        <option value="pending">Pending</option>
-                                        <option value="assigned">Assigned</option>
-                                        <option value="in_transit">In Transit</option>
-                                        <option value="failed">Failed</option>
-                                    </select>
+                        {deliveries.length === 0 ? (
+                            <tr>
+                                <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
+                                    No deliveries found
                                 </td>
                             </tr>
-                        ))}
+                        ) : (
+                            deliveries.map((delivery) => (
+                                <tr key={delivery.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        {delivery.customer_name}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {delivery.address}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        LKR {delivery.cod_amount}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(delivery.status)}`}>
+                                            {delivery.status}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <select
+                                            className="border rounded px-2 py-1 text-sm"
+                                            value={delivery.status}
+                                            onChange={(e) => handleStatusUpdate(delivery.id, e.target.value)}
+                                        >
+                                            <option value="pending">Pending</option>
+                                            <option value="assigned">Assigned</option>
+                                            <option value="in_transit">In Transit</option>
+                                            <option value="failed">Failed</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>

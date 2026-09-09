@@ -28,6 +28,9 @@ function Dashboard({ user }) {
             setStats(response.data);
         } catch (error) {
             console.error('Error fetching stats:', error);
+            if (error.response?.status === 403) {
+                alert('You need admin access to view dashboard stats');
+            }
         } finally {
             setLoading(false);
         }

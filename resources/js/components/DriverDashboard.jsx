@@ -1,17 +1,54 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../api/client';
 import LiveMap from './LiveMap';
 
 function DriverDashboard({ user }) {
     const [myDeliveries, setMyDeliveries] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [location, setLocation] = useState(null);
+    const [error, setError] = useState(null);
 
+    // 👇 Use useCallback to prevent re-creation
+    const fetchMyDeliveries = useCallback(async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+            
+            const response = await api.get('/deliveries');
+            setMyDeliveries(response.data.data || []);
+            setError(null);
+        } catch (error) {
+            console.error('Error fetching deliveries:', error);
+            if (error.response?.status === 401) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+            } else {
+                setError('Failed to load deliveries. Please refresh.');
+            }
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    }, []);
+
+    // 👇 Deliveries fetch - Run once on mount only
     useEffect(() => {
         fetchMyDeliveries();
+    }, [fetchMyDeliveries]);
 
-        // Get current location
-        if (navigator.geolocation) {
+    // 👇 GPS Location - Separate effect
+    useEffect(() => {
+        if (!navigator.geolocation) {
+            console.warn('Geolocation not supported');
+            return;
+        }
+
+        const getLocation = () => {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     setLocation({
@@ -19,30 +56,35 @@ function DriverDashboard({ user }) {
                         lng: pos.coords.longitude,
                     });
                 },
-                (err) => console.error('Geolocation error:', err)
+                (err) => {
+                    console.error('Geolocation error:', err);
+                    // Use default location if geolocation fails
+                    setLocation({ lat: 6.9271, lng: 79.8612 });
+                }
             );
-        }
+        };
+
+        getLocation();
 
         // Send GPS ping every 30 seconds
-        const interval = setInterval(() => {
+        const pingInterval = setInterval(() => {
             if (location) {
                 sendGpsPing();
             }
         }, 30000);
 
-        return () => clearInterval(interval);
-    }, [location]);
+        // Refresh deliveries every 60 seconds (optional)
+        const refreshInterval = setInterval(() => {
+            if (!refreshing) {
+                fetchMyDeliveries();
+            }
+        }, 60000);
 
-    const fetchMyDeliveries = async () => {
-        try {
-            const response = await api.get('/deliveries');
-            setMyDeliveries(response.data.data || []);
-        } catch (error) {
-            console.error('Error fetching deliveries:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+        return () => {
+            clearInterval(pingInterval);
+            clearInterval(refreshInterval);
+        };
+    }, [location, refreshing, fetchMyDeliveries]);
 
     const sendGpsPing = async () => {
         if (!location) return;
@@ -51,6 +93,11 @@ function DriverDashboard({ user }) {
         } catch (error) {
             console.error('GPS ping failed:', error);
         }
+    };
+
+    const handleRefresh = () => {
+        setRefreshing(true);
+        fetchMyDeliveries();
     };
 
     const updateStatus = async (id, status) => {
@@ -93,6 +140,25 @@ function DriverDashboard({ user }) {
 
     return (
         <div>
+            {/* Header */}
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Driver Dashboard</h2>
+                <button
+                    onClick={handleRefresh}
+                    disabled={refreshing}
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm disabled:opacity-50"
+                >
+                    {refreshing ? '⏳ Refreshing...' : '🔄 Refresh'}
+                </button>
+            </div>
+
+            {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    {error}
+                </div>
+            )}
+
+            {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="bg-white p-4 rounded-lg shadow">
                     <h3 className="text-sm text-gray-500">My Deliveries</h3>
@@ -105,15 +171,15 @@ function DriverDashboard({ user }) {
                     </p>
                 </div>
                 <div className="bg-white p-4 rounded-lg shadow">
-                    <h3 className="text-sm text-gray-500">Delivered Today</h3>
+                    <h3 className="text-sm text-gray-500">Delivered</h3>
                     <p className="text-2xl font-bold text-green-600">
                         {myDeliveries.filter(d => d.status === 'delivered').length}
                     </p>
                 </div>
             </div>
 
+            {/* Content */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Map */}
                 <div className="bg-white rounded-lg shadow overflow-hidden">
                     <div className="p-4 border-b">
                         <h3 className="font-bold">Live Map</h3>
@@ -121,7 +187,6 @@ function DriverDashboard({ user }) {
                     <LiveMap user={user} />
                 </div>
 
-                {/* My Deliveries */}
                 <div className="bg-white rounded-lg shadow">
                     <div className="p-4 border-b">
                         <h3 className="font-bold">My Deliveries</h3>
