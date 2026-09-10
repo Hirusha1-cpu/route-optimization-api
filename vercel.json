@@ -12,7 +12,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "https://route-optimization-api.up.railway.app/api/$1"
+      "dest": "https://route-optimization-api-production.up.railway.app/api/$1"
     },
     {
       "src": "/(.*)",
