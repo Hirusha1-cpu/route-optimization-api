@@ -1,12 +1,16 @@
 {
-  "$schema": "https://railway.app/railway.schema.json",
+  "$schema": "https://railway.com/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS"
+    "builder": "RAILPACK",
+    "buildCommand": "composer install --no-dev --optimize-autoloader --no-scripts",
+    "buildEnvironment": "V3"
   },
   "deploy": {
+    "runtime": "V2",
     "numReplicas": 1,
+    "startCommand": "php artisan package:discover --ansi && php artisan config:clear && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}",
+    "sleepApplication": false,
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 10,
-    "startCommand": "php artisan serve --host=0.0.0.0 --port=$PORT"
+    "restartPolicyMaxRetries": 10
   }
 }
